@@ -55,7 +55,9 @@ spec:
       - key: HONO_MESSAGING_USERNAME
         value: ${MY_DEVICE}@${MY_TENANT}
       - key: HONO_MESSAGING_PASSWORD
-        value: ${MY_PWD}" > $ADAPTER_YAML_FILE
+        value: ${MY_PWD}
+      - key: HONO_MESSAGING_HOSTNAME_VERIFICATION_REQUIRED
+        value: false" > $ADAPTER_YAML_FILE
 
 SERVICES=("HONO_TENANT" "HONO_REGISTRATION" "HONO_CREDENTIALS" "HONO_DEVICE_CONNECTION")
 
@@ -68,5 +70,7 @@ echo -n "
       - key: ${PREFIX}_USERNAME
         value: ${MY_DEVICE}@${MY_TENANT}
       - key: ${PREFIX}_PASSWORD
-        value: ${MY_PWD}" >> $ADAPTER_YAML_FILE
+        value: ${MY_PWD}
+      - key ${PREFIX}_HOSTNAME_VERIFICATION_REQUIRED
+        value: false" >> $ADAPTER_YAML_FILE
 done
