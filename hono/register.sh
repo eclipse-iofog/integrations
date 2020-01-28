@@ -48,6 +48,8 @@ spec:
         value: dev
       - key: LOGGING_CONFIG
         value: classpath:logback-spring.xml
+      - key: HONO_HTTP_INSECURE_PORT_ENABLED
+        value: true
       - key: HONO_MESSAGING_PORT
         value: 15672
       - key: HONO_MESSAGING_HOST
