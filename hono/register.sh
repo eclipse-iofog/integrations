@@ -71,6 +71,6 @@ echo -n "
         value: ${MY_DEVICE}@${MY_TENANT}
       - key: ${PREFIX}_PASSWORD
         value: ${MY_PWD}
-      - key ${PREFIX}_HOSTNAME_VERIFICATION_REQUIRED
+      - key: ${PREFIX}_HOSTNAME_VERIFICATION_REQUIRED
         value: false" >> $ADAPTER_YAML_FILE
 done
