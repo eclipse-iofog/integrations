@@ -21,6 +21,12 @@ MY_TENANT=$MY_TENANT
 MY_DEVICE=$MY_DEVICE
 MY_PWD=$MY_PWD"
 
+AGENT=$(iofogctl get agents | grep RUNNING | awk '{print $1}')
+if [ -z "$AGENT" ]; then
+  echo "Could not find ioFog Agent with RUNNING status"
+  exit 1
+fi
+
 echo -n "---
 apiVersion: iofog.org/v1
 kind: Application
@@ -30,7 +36,7 @@ spec:
   microservices:
   - name: http-adapter
     agent:
-      name: local-agent
+      name: $AGENT
     images:
       x86: index.docker.io/eclipse/hono-adapter-http-vertx:1.0.3
     container:
