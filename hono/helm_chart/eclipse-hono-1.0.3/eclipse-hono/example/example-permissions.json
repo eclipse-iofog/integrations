@@ -44,6 +44,18 @@
       {
         "operation": "device_con/*:*",
         "activities": [ "EXECUTE" ]
+      },
+      {
+        "resource": "control/*",
+        "activities": [ "READ", "WRITE" ]
+      },
+      {
+        "resource": "command/*",
+        "activities": [ "READ" ]
+      },
+      {
+        "resource": "command_response/*",
+        "activities": [ "WRITE" ]
       }
     ],
     "device-manager": [
