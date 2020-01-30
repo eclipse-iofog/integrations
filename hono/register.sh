@@ -26,7 +26,7 @@ MY_TENANT=$MY_TENANT
 MY_DEVICE=$MY_DEVICE
 MY_PWD=$MY_PWD"
 
-AGENT=$(iofogctl get agents | grep RUNNING | awk '{print $1}')
+AGENT=$(iofogctl get agents | grep RUNNING | awk '{print $1}' | head -1)
 if [ -z "$AGENT" ]; then
   echo "Could not find ioFog Agent with RUNNING status"
   exit 1
@@ -38,16 +38,16 @@ function serviceListToEnv() {
   local PORT=$3
   for PREFIX in "${SERVICES[@]}"; do
   echo -n "
-        - key: ${PREFIX}_HOST
-          value: $HOST
-        - key: ${PREFIX}_PORT
-          value: $PORT
-        - key: ${PREFIX}_USERNAME
-          value: $ADAPTER_USERNAME
-        - key: ${PREFIX}_PASSWORD
-          value: $ADAPTER_PASSWORD
-        - key: ${PREFIX}_HOSTNAME_VERIFICATION_REQUIRED
-          value: false" >> $ADAPTER_YAML_FILE
+      - key: ${PREFIX}_HOST
+        value: $HOST
+      - key: ${PREFIX}_PORT
+        value: $PORT
+      - key: ${PREFIX}_USERNAME
+        value: $ADAPTER_USERNAME
+      - key: ${PREFIX}_PASSWORD
+        value: $ADAPTER_PASSWORD
+      - key: ${PREFIX}_HOSTNAME_VERIFICATION_REQUIRED
+        value: false" >> $ADAPTER_YAML_FILE
   done
 }
 
