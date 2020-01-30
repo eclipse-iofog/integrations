@@ -2,7 +2,9 @@
 set -e
 
 REGISTRY_IP=$(kubectl get svc | grep hono-service-device-registry-ext | awk '{print $4}' | tr -d '"')
+REGISTRY_PORT=28080
 ROUTER_IP=$(kubectl get svc | grep hono-dispatch-router-ext | awk '{print $4}' | tr -d '"')
+ROUTER_PORT=15672
 MY_TENANT=$(curl -si -X POST http://$REGISTRY_IP:28080/v1/tenants | tail -n1 | jq .id | tr -d '"')
 MY_DEVICE=$(curl -si -X POST http://$REGISTRY_IP:28080/v1/devices/$MY_TENANT | tail -n1 | jq .id | tr -d '"')
 MY_PWD=my-pwd
@@ -26,6 +28,25 @@ if [ -z "$AGENT" ]; then
   echo "Could not find ioFog Agent with RUNNING status"
   exit 1
 fi
+
+function serviceListToEnv() {
+  local SERVICES=$1
+  local HOST=$2
+  local PORT=$3
+  for PREFIX in "${SERVICES[@]}"; do
+  echo -n "
+        - key: ${PREFIX}_HOST
+          value: $HOST
+        - key: ${PREFIX}_PORT
+          value: $PORT
+        - key: ${PREFIX}_USERNAME
+          value: ${MY_DEVICE}@${MY_TENANT}
+        - key: ${PREFIX}_PASSWORD
+          value: ${MY_PWD}
+        - key: ${PREFIX}_HOSTNAME_VERIFICATION_REQUIRED
+          value: false" >> $ADAPTER_YAML_FILE
+  done
+}
 
 echo -n "---
 apiVersion: iofog.org/v1
@@ -55,30 +76,10 @@ spec:
       - key: LOGGING_CONFIG
         value: classpath:logback-spring.xml
       - key: HONO_HTTP_INSECURE_PORT_ENABLED
-        value: true
-      - key: HONO_MESSAGING_PORT
-        value: 15672
-      - key: HONO_MESSAGING_HOST
-        value: $ROUTER_IP
-      - key: HONO_MESSAGING_USERNAME
-        value: ${MY_DEVICE}@${MY_TENANT}
-      - key: HONO_MESSAGING_PASSWORD
-        value: ${MY_PWD}
-      - key: HONO_MESSAGING_HOSTNAME_VERIFICATION_REQUIRED
-        value: false" > $ADAPTER_YAML_FILE
+        value: true" > $ADAPTER_YAML_FILE
 
-SERVICES=("HONO_TENANT" "HONO_REGISTRATION" "HONO_CREDENTIALS" "HONO_DEVICE_CONNECTION" "HONO_COMMAND")
+ROUTER_SERVICES=("HONO_MESSAGING" "HONO_COMMAND")
+REGISTRY_SERVICES=("HONO_TENANT" "HONO_REGISTRATION" "HONO_CREDENTIALS" "HONO_DEVICE_CONNECTION" "HONO_COMMAND")
 
-for PREFIX in "${SERVICES[@]}"; do
-echo -n "
-      - key: ${PREFIX}_HOST
-        value: $REGISTRY_IP
-      - key: ${PREFIX}_PORT
-        value: 28080
-      - key: ${PREFIX}_USERNAME
-        value: ${MY_DEVICE}@${MY_TENANT}
-      - key: ${PREFIX}_PASSWORD
-        value: ${MY_PWD}
-      - key: ${PREFIX}_HOSTNAME_VERIFICATION_REQUIRED
-        value: false" >> $ADAPTER_YAML_FILE
-done
+serviceListToEnv ROUTER_SERVICES $ROUTER_IP $ROUTER_PORT
+serviceListToEnv REGISTRY_SERVICES $REGISTRY_IP $REGISTRY_PORT
