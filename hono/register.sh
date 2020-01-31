@@ -33,10 +33,11 @@ if [ -z "$AGENT" ]; then
 fi
 
 function serviceListToEnv() {
-  local SERVICES=$1
-  local HOST=$2
-  local PORT=$3
-  for PREFIX in "${SERVICES[@]}"; do
+  local HOST=$1
+  local PORT=$2
+  shift 2
+  local SERVICES=$@
+  for PREFIX in ${SERVICES[@]}; do
   echo -n "
       - key: ${PREFIX}_HOST
         value: $HOST
@@ -97,5 +98,5 @@ spec:
 ROUTER_SERVICES=("HONO_MESSAGING" "HONO_COMMAND")
 REGISTRY_SERVICES=("HONO_TENANT" "HONO_REGISTRATION" "HONO_CREDENTIALS" "HONO_DEVICE_CONNECTION")
 
-serviceListToEnv ROUTER_SERVICES localhost 5672
-serviceListToEnv REGISTRY_SERVICES $REGISTRY_IP $REGISTRY_AMQP_PORT
+serviceListToEnv localhost 5672 ${ROUTER_SERVICES[@]}
+serviceListToEnv $REGISTRY_IP $REGISTRY_AMQP_PORT ${REGISTRY_SERVICES[@]} 
