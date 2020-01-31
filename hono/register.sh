@@ -58,12 +58,25 @@ metadata:
   name: hono
 spec:
   microservices:
+  - name: edge-router
+    agent:
+      name: $AGENT
+    images:
+      x86: 
+    container:
+      port:
+      - internal: 5672
+        external: 5672
+      env:
+      - key: QDROUTERD_CONF
+        value: \"router {\nmode: edge\n  id: edge-router-${AGENT}\n}\nlistener {\n  role: normal\n  host: 0.0.0.0\n  port: 5672\n}\nconnector {\n  name: hono-dispatch-router\n host: \n port: ${ROUTER_PORT}\n role: edge\n }\"
   - name: http-adapter
     agent:
       name: $AGENT
     images:
       x86: index.docker.io/eclipse/hono-adapter-http-vertx:1.0.3
     container:
+      rootHostAccess: true
       ports:
       - internal: 8088
         external: 8088
