@@ -2,11 +2,14 @@
 set -e
 
 REGISTRY_IP=$(kubectl get svc | grep hono-service-device-registry-ext | awk '{print $4}' | tr -d '"')
-REGISTRY_PORT=28080
+REGISTRY_AMQP_PORT=5672
+REGISTRY_HTTP_PORT=28080
 ROUTER_IP=$(kubectl get svc | grep hono-dispatch-router-ext | awk '{print $4}' | tr -d '"')
 ROUTER_PORT=15672
-MY_TENANT=$(curl -si -X POST http://$REGISTRY_IP:28080/v1/tenants | tail -n1 | jq .id | tr -d '"')
-MY_DEVICE=$(curl -si -X POST http://$REGISTRY_IP:28080/v1/devices/$MY_TENANT | tail -n1 | jq .id | tr -d '"')
+ADAPTER_USERNAME="http-adapter@HONO"
+ADAPTER_PASSWORD="http-secret"
+MY_TENANT=$(curl -si -X POST http://$REGISTRY_IP:$REGISTRY_HTTP_PORT/v1/tenants | tail -n1 | jq .id | tr -d '"')
+MY_DEVICE=$(curl -si -X POST http://$REGISTRY_IP:$REGISTRY_HTTP_PORT/v1/devices/$MY_TENANT | tail -n1 | jq .id | tr -d '"')
 MY_PWD=my-pwd
 curl -i -X PUT -H "content-type: application/json" --data-binary '[{
   "type": "hashed-password",
@@ -14,7 +17,7 @@ curl -i -X PUT -H "content-type: application/json" --data-binary '[{
   "secrets": [{
       "pwd-plain": "'$MY_PWD'"
   }]
-}]' http://$REGISTRY_IP:28080/v1/credentials/$MY_TENANT/$MY_DEVICE
+}]' http://$REGISTRY_IP:$REGISTRY_HTTP_PORT/v1/credentials/$MY_TENANT/$MY_DEVICE
 
 ADAPTER_YAML_FILE="/tmp/hono-http-adapter.yaml"
 
@@ -40,9 +43,9 @@ function serviceListToEnv() {
         - key: ${PREFIX}_PORT
           value: $PORT
         - key: ${PREFIX}_USERNAME
-          value: ${MY_DEVICE}@${MY_TENANT}
+          value: $ADAPTER_USERNAME
         - key: ${PREFIX}_PASSWORD
-          value: ${MY_PWD}
+          value: $ADAPTER_PASSWORD
         - key: ${PREFIX}_HOSTNAME_VERIFICATION_REQUIRED
           value: false" >> $ADAPTER_YAML_FILE
   done
@@ -79,7 +82,7 @@ spec:
         value: true" > $ADAPTER_YAML_FILE
 
 ROUTER_SERVICES=("HONO_MESSAGING" "HONO_COMMAND")
-REGISTRY_SERVICES=("HONO_TENANT" "HONO_REGISTRATION" "HONO_CREDENTIALS" "HONO_DEVICE_CONNECTION" "HONO_COMMAND")
+REGISTRY_SERVICES=("HONO_TENANT" "HONO_REGISTRATION" "HONO_CREDENTIALS" "HONO_DEVICE_CONNECTION")
 
 serviceListToEnv ROUTER_SERVICES $ROUTER_IP $ROUTER_PORT
-serviceListToEnv REGISTRY_SERVICES $REGISTRY_IP $REGISTRY_PORT
+serviceListToEnv REGISTRY_SERVICES $REGISTRY_IP $REGISTRY_AMQP_PORT

@@ -145,6 +145,20 @@
       }
   }],
 
+  ["vhost", {
+      "hostname": "io-fog",
+      "maxConnections": 50,
+      "groups": {
+        "$default": {
+          "remoteHosts": "*",
+          "maxSessions": 4,
+          "maxMessageSize": 131072,
+          "allowUserIdProxy": true,
+          "allowAnonymousSender": true
+        }
+      }
+  }],
+
   ["log", {
     "module": "DEFAULT",
     "enable": "info+"
