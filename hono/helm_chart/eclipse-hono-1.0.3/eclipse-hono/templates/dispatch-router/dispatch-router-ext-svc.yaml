@@ -26,12 +26,12 @@ spec:
     port: 15671
     protocol: TCP
     targetPort: amqps
-    nodePort: 30671
+
   - name: amqp
     port: 15672
     protocol: TCP
     targetPort: amqp
-    nodePort: 30672
+
   selector:
     {{- include "hono.matchLabels" $args | nindent 4 }}
 {{- if and ( eq .Values.useLoadBalancer true ) ( ne .Values.platform "openshift" ) }}

@@ -25,12 +25,12 @@ spec:
     port: 8080
     protocol: TCP
     targetPort: http
-    nodePort: 30080
+
   - name: https
     port: 8443
     protocol: TCP
     targetPort: https
-    nodePort: 30443
+
   selector:
     {{- include "hono.matchLabels" $args | nindent 4 }}
 {{- if and ( eq .Values.useLoadBalancer true ) ( ne .Values.platform "openshift" ) }}
