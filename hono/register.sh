@@ -35,7 +35,8 @@ fi
 function serviceListToEnv() {
   local HOST=$1
   local PORT=$2
-  shift 2
+  local VIRTUAL_HOST=$3
+  shift 3
   local SERVICES=$@
   for PREFIX in ${SERVICES[@]}; do
   echo -n "
@@ -43,6 +44,8 @@ function serviceListToEnv() {
         value: $HOST
       - key: ${PREFIX}_PORT
         value: $PORT
+      - key: ${PREFIX}_AMQP_HOSTNAME
+        value: $VIRTUAL_HOST
       - key: ${PREFIX}_USERNAME
         value: $ADAPTER_USERNAME
       - key: ${PREFIX}_PASSWORD
@@ -96,7 +99,7 @@ spec:
         value: true" > $ADAPTER_YAML_FILE
 
 ROUTER_SERVICES=("HONO_MESSAGING" "HONO_COMMAND")
-REGISTRY_SERVICES=("HONO_TENANT" "HONO_REGISTRATION" "HONO_CREDENTIALS" "HONO_DEVICE_CONNECTION")
+REGISTRY_SERVICES=("HONO_TENANT" "HONO_REGISTRATION" "HONO_CREDENTIALS" "HONO_DEVICECONNECTION")
 
-serviceListToEnv localhost 5672 ${ROUTER_SERVICES[@]}
-serviceListToEnv $REGISTRY_IP $REGISTRY_AMQP_PORT ${REGISTRY_SERVICES[@]} 
+serviceListToEnv localhost 5672 io-fog ${ROUTER_SERVICES[@]}
+serviceListToEnv $REGISTRY_IP $REGISTRY_AMQP_PORT hono ${REGISTRY_SERVICES[@]} 
