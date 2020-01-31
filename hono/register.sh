@@ -70,7 +70,7 @@ spec:
         external: 5672
       env:
       - key: QDROUTERD_CONF
-        value: \"router {\nmode: edge\n  id: edge-router-${AGENT}\n}\nlistener {\n  role: normal\n  host: 0.0.0.0\n  port: 5672\n}\nconnector {\n  name: hono-dispatch-router\n host: \n port: ${ROUTER_PORT}\n role: edge\n saslMechanisms: PLAIN\n saslUsername: ${MY_DEVICE}@${MY_TENANT}\n saslPassword: pass:${MY_PWD} }\"
+        value: \"router {\n  mode: edge\n  id: edge-router-${AGENT}\n}\nlistener {\n  role: normal\n  host: 0.0.0.0\n  port: 5672\n}\nconnector {\n name: hono-dispatch-router\n host: $ROUTER_IP\n port: ${ROUTER_PORT}\n role: edge\n saslMechanisms: PLAIN\n saslUsername: \\\"${MY_DEVICE}@${MY_TENANT}\\\"\n saslPassword: \\\"pass:${MY_PWD}\\\"\n}\"
   - name: http-adapter
     agent:
       name: $AGENT
