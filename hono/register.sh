@@ -62,7 +62,7 @@ spec:
     agent:
       name: $AGENT
     images:
-      x86: 
+      x86: quay.io/interconnectedcloud/qdrouterd:latest
     container:
       port:
       - internal: 5672
@@ -97,5 +97,5 @@ spec:
 ROUTER_SERVICES=("HONO_MESSAGING" "HONO_COMMAND")
 REGISTRY_SERVICES=("HONO_TENANT" "HONO_REGISTRATION" "HONO_CREDENTIALS" "HONO_DEVICE_CONNECTION")
 
-serviceListToEnv ROUTER_SERVICES $ROUTER_IP $ROUTER_PORT
+serviceListToEnv ROUTER_SERVICES localhost 5672
 serviceListToEnv REGISTRY_SERVICES $REGISTRY_IP $REGISTRY_AMQP_PORT
