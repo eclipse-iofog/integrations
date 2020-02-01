@@ -95,6 +95,8 @@ spec:
         value: dev
       - key: LOGGING_CONFIG
         value: classpath:logback-spring.xml
+      - key: HONO_HEALTH_CHECK_INSECURE_PORT_BIND_ADDRESS
+        value: "0.0.0.0"
       - key: HONO_HTTP_INSECURE_PORT_ENABLED
         value: true" > $ADAPTER_YAML_FILE
 
