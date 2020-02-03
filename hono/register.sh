@@ -19,18 +19,18 @@ curl -i -X PUT -H "content-type: application/json" --data-binary '[{
   }]
 }]' http://$REGISTRY_IP:$REGISTRY_HTTP_PORT/v1/credentials/$MY_TENANT/$MY_DEVICE
 
-ADAPTER_YAML_FILE="/home/hak8fe/tmp/hono-http-adapter.yaml"
+ADAPTER_YAML_FILE="/tmp/hono-http-adapter.yaml"
 
 echo "REGISTRY_IP=$REGISTRY_IP
 MY_TENANT=$MY_TENANT
 MY_DEVICE=$MY_DEVICE
 MY_PWD=$MY_PWD"
 
-#AGENT=$(iofogctl get agents | grep RUNNING | awk '{print $1}' | head -1)
-#if [ -z "$AGENT" ]; then
-#  echo "Could not find ioFog Agent with RUNNING status"
-#  exit 1
-#fi
+AGENT=$(iofogctl get agents | grep RUNNING | awk '{print $1}' | head -1)
+if [ -z "$AGENT" ]; then
+  echo "Could not find ioFog Agent with RUNNING status"
+  exit 1
+fi
 
 function serviceListToEnv() {
   local HOST=$1
