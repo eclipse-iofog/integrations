@@ -148,6 +148,7 @@
   ["vhost", {
       "hostname": "io-fog",
       "maxConnections": 50,
+      "allowUnknownUser": true,
       "groups": {
         "$default": {
           "remoteHosts": "*",
