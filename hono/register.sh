@@ -3,6 +3,8 @@ set -e
 
 ADAPTER_YAML_FILE="/tmp/hono-http-adapter.yaml"
 
+AUTH_IP=$(kubectl get svc | grep hono-service-auth | awk '{print $4}' | tr -d '"' | head -n 1)
+AUTH_PORT=5671
 REGISTRY_IP=$(kubectl get svc | grep hono-service-device-registry-ext | awk '{print $4}' | tr -d '"')
 REGISTRY_AMQP_PORT=5672
 REGISTRY_HTTP_PORT=28080
@@ -69,35 +71,34 @@ spec:
         external: 5672
       env:
       - key: QDROUTERD_CONF
-        value: \"router {\n  mode: edge\n  id: hono-edge-router\n}\n\nlistener {\n  role: normal\n  host: 0.0.0.0\n  port: 5672\n}\n\nconnector {\n  host: $ROUTER_IP\n  port: $ROUTER_PORT\n  role: edge\n  saslMechanisms: PLAIN\n  saslUsername: $MY_DEVICE@$MY_TENANT\n  saslPassword: pass:$MY_PWD\n}\n\"" > $ADAPTER_YAML_FILE
-#  - name: http-adapter
-#    agent:
-#      name: $AGENT
-#    images:
-#      x86: index.docker.io/eclipse/hono-adapter-http-vertx:1.0.3
-#    container:
-#      rootHostAccess: true
-#      ports:
-#      - internal: 8088
-#        external: 8088
-#      - internal: 8080
-#        external: 8080
-#      - internal: 8443
-#        external: 8443
-#      env:
-#      - key: SPRING_CONFIG_LOCATION
-#        value: file:///etc/hono/
-#      - key: SPRING_PROFILES_ACTIVE
-#        value: dev
-#      - key: LOGGING_CONFIG
-#        value: classpath:logback-spring.xml
-#      - key: HONO_HEALTHCHECK_INSECUREPORTBINDADDRESS
-#        value: "0.0.0.0"
-#      - key: HONO_HTTP_INSECURE_PORT_ENABLED
-#        value: true" > $ADAPTER_YAML_FILE
+        value: \"router {\n  mode: edge\n  id: hono-edge-router\n}\n\nauthServicePlugin {\n  host: $AUTH_IP\n  port: $AUTH_PORT\n  sslProfile: internal\n}\n\nlistener {\n  role: normal\n  host: 0.0.0.0\n  port: 5672\n  saslMechanisms: PLAIN\n  saslPlugin: Hono Auth\n}\n\nconnector {\n  host: $ROUTER_IP\n  port: $ROUTER_PORT\n  role: edge\n  saslMechanisms: PLAIN\n  saslUsername: $ADAPTER_USERNAME\n  saslPassword: pass:$ADAPTER_PASSWORD\n}\n\"
+  - name: http-adapter
+    agent:
+      name: $AGENT
+    images:
+      x86: index.docker.io/eclipse/hono-adapter-http-vertx:1.0.3
+    container:
+      rootHostAccess: true
+      ports:
+      - internal: 8088
+        external: 8088
+      - internal: 8080
+        external: 8080
+      - internal: 8443
+        external: 8443
+      env:
+      - key: SPRING_CONFIG_LOCATION
+        value: file:///etc/hono/
+      - key: SPRING_PROFILES_ACTIVE
+        value: dev
+      - key: LOGGING_CONFIG
+        value: classpath:logback-spring.xml
+      - key: HONO_HEALTHCHECK_INSECUREPORTBINDADDRESS
+        value: "0.0.0.0"
+      - key: HONO_HTTP_INSECURE_PORT_ENABLED
+        value: true" > $ADAPTER_YAML_FILE
+ROUTER_SERVICES=("HONO_MESSAGING" "HONO_COMMAND")
+REGISTRY_SERVICES=("HONO_TENANT" "HONO_REGISTRATION" "HONO_CREDENTIALS" "HONO_DEVICECONNECTION")
 
-#ROUTER_SERVICES=("HONO_MESSAGING" "HONO_COMMAND")
-#REGISTRY_SERVICES=("HONO_TENANT" "HONO_REGISTRATION" "HONO_CREDENTIALS" "HONO_DEVICECONNECTION")
-#
-#serviceListToEnv $ROUTER_IP $ROUTER_PORT io-fog ${ROUTER_SERVICES[@]}
-#serviceListToEnv $REGISTRY_IP $REGISTRY_AMQP_PORT hono ${REGISTRY_SERVICES[@]} 
+serviceListToEnv localhost 5672 io-fog ${ROUTER_SERVICES[@]}
+serviceListToEnv $REGISTRY_IP $REGISTRY_AMQP_PORT hono ${REGISTRY_SERVICES[@]} 
