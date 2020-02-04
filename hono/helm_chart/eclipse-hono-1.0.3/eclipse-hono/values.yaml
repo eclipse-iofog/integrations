@@ -630,8 +630,11 @@ deviceRegistryExample:
       # If not set, the registry by default exposes the secure port
       # using an example key and certificate.
       amqp:
-      #  insecurePortEnabled: true
-      #  insecurePortBindAddress: "0.0.0.0"
+        insecurePortEnabled: true
+        insecurePortBindAddress: "0.0.0.0"
+        bindAddress: "0.0.0.0"
+        keyPath: "/etc/hono/key.pem"
+        certPath: "/etc/hono/cert.pem"
 
       # rest contains configuration properties for the server's
       # exposed HTTP endpoints.
