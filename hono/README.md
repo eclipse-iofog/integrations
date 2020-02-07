@@ -10,7 +10,7 @@ Assuming you have an ioFog ECN up and running...
 ```bash
 kubectl create namespace hono
 kubectl config set-context --current --namespace hono
-helm install hono eclipse-hono/ --dependency-update --namespace hono
+helm install hono helm/eclipse-hono/ --dependency-update --namespace hono
 ```
 
 ## Generate ioFog Microservice YAML file for HONO HTTP Adapter
