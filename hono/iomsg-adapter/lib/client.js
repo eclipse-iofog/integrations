@@ -1,5 +1,5 @@
-const put = require('superagent').put
-const format = require('util').format
+const { put } = require('superagent')
+const { format } = require('util')
 
 class Hono {
   constructor (address, port, tenant, device) {
@@ -9,24 +9,20 @@ class Hono {
     this.contentType = 'application/json'
   }
 
-  PublishTelemetry (data) {
-    (async () => {
-      try {
-        await put(this.telemetryEndpoint).set('content-type', this.contentType).send(data)
-      } catch (err) {
-        console.error(err)
-      }
-    })()
+  async PublishTelemetry (data) {
+    try {
+      await put(this.telemetryEndpoint).set('content-type', this.contentType).send(data)
+    } catch (err) {
+      console.error(err)
+    }
   }
 
-  PublishEvent (data) {
-    (async () => {
-      try {
-        await put(this.eventEndpoint).set('content-type', this.contentType).send(data)
-      } catch (err) {
-        console.error(err)
-      }
-    })()
+  async PublishEvent (data) {
+    try {
+      await put(this.eventEndpoint).set('content-type', this.contentType).send(data)
+    } catch (err) {
+      console.error(err)
+    }
   }
 }
 
