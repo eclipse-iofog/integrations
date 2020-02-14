@@ -71,13 +71,12 @@ spec:
     images:
       arm: edgeworx/healthcare-heart-rate-ui:arm
       x86: edgeworx/healthcare-heart-rate-ui:x86
-    container:
-      ports:
-      - external: 5000 # You will be able to access the ui on <AGENT_IP>:5000
-        internal: 80 # The ui is listening on port 80. Do not edit this.
-      env:
-      - key: BASE_URL
-        value: http://localhost:8080/data
+    ports:
+    - external: 5000 # You will be able to access the ui on <AGENT_IP>:5000
+      internal: 80 # The ui is listening on port 80. Do not edit this.
+    env:
+    - key: BASE_URL
+      value: http://localhost:8080/data
   - name: amqp-to-iomessage
     agent:
       name: $AGENT
