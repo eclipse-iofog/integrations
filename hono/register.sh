@@ -47,7 +47,54 @@ kind: Application
 metadata:
   name: hono
 spec:
+  routes:
+  - from: heart-rate-monitor
+    to: iomessage-to-http-adapter
+  - from: amqp-to-iomessage
+    to: heart-rate-monitor
   microservices:
+  - name: heart-rate-monitor
+    agent:
+      name: $AGENT
+      config:
+        bluetoothEnabled: false # this will install the iofog/restblue microservice
+        abstractedHardwareEnabled: false
+    images:
+      arm: edgeworx/healthcare-heart-rate:arm-v1
+      x86: edgeworx/healthcare-heart-rate:x86-v1
+    config:
+      test_mode: true
+      data_label: Anonymous Person
+  - name: heart-rate-viewer
+    agent:
+      name: $AGENT
+    images:
+      arm: edgeworx/healthcare-heart-rate-ui:arm
+      x86: edgeworx/healthcare-heart-rate-ui:x86
+    container:
+      ports:
+      - external: 5000 # You will be able to access the ui on <AGENT_IP>:5000
+        internal: 80 # The ui is listening on port 80. Do not edit this.
+      env:
+      - key: BASE_URL
+        value: http://localhost:8080/data
+  - name: amqp-to-iomessage
+    agent:
+      name: $AGENT
+    config:
+      port: $ROUTER_PORT
+      host: $ROUTER_IP
+      queue: iofog-demo
+    images:
+      x86: edgeworx/amqp-to-iomessage-adapter:latest
+  - name: iomessage-to-http-adapter
+    agent:
+      name: $AGENT
+    config:
+      host: localhost
+    rootHostAccess: true
+    images:
+      x86: edgeworx/iomsg-http-adapter:latest
   - name: http-adapter
     agent:
       name: $AGENT
@@ -69,7 +116,7 @@ spec:
     - key: LOGGING_CONFIG
       value: classpath:logback-spring.xml
     - key: HONO_HEALTHCHECK_INSECUREPORTBINDADDRESS
-      value: "0.0.0.0"
+      value: 0.0.0.0
     - key: HONO_HTTP_INSECURE_PORT_ENABLED
       value: true
     - key: HONO_HTTP_AUTHENTICATION_REQUIRED
