@@ -74,13 +74,13 @@ spec:
     ports:
     - external: 5000 # You will be able to access the ui on <AGENT_IP>:5000
       internal: 80 # The ui is listening on port 80. Do not edit this.
-    env:
-    - key: BASE_URL
-      value: http://localhost:8080/data
   - name: amqp-to-iomessage
+    rootHostAccess: true
     agent:
       name: $AGENT
     config:
+      username: kura-adapter@HONO
+      password: kura-secret
       port: $ROUTER_PORT
       host: $ROUTER_IP
       queue: iofog-demo
