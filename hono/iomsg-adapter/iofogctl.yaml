@@ -7,7 +7,9 @@ spec:
     name: TBD
   config:
     host: ''
-    device: ''
+    port: 8080
+    tenant: 'DEFAULT_TENANT'
+    device: '4711'
   images:
-    x86: TBD
+    x86: edgeworx/iomsg-http-adapter
   application: TBD
