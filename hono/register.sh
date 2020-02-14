@@ -51,7 +51,7 @@ spec:
   - from: heart-rate-monitor
     to: iomessage-to-http-adapter
   - from: amqp-to-iomessage
-    to: heart-rate-monitor
+    to: heart-rate-viewer
   microservices:
   - name: heart-rate-monitor
     agent:
