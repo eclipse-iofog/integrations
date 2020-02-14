@@ -79,11 +79,11 @@ spec:
     agent:
       name: $AGENT
     config:
-      username: kura-adapter@HONO
-      password: kura-secret
+      username: consumer@HONO
+      password: verysecret
       port: $ROUTER_PORT
       host: $ROUTER_IP
-      queue: iofog-demo
+      queue: event/DEFAULT_TENANT
     images:
       x86: edgeworx/amqp-to-iomessage-adapter:latest
   - name: iomessage-to-http-adapter
