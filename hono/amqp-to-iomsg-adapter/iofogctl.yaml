@@ -10,7 +10,7 @@ spec:
     host: ""
     queue: ""
   images:
-    x86: TBD
+    x86: edgeworx/amqp-to-iomessage-adapter:latest
   routes:
   - heart-rate-viewer
   application: TBD

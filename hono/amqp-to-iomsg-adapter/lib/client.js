@@ -6,6 +6,9 @@ let currentConfig = {
   queue: 'my-super-queue-name'
 }
 
+const ADAPTER_USERNAME = 'http-adapter@HONO'
+const ADAPTER_PASSWORD = 'http-secret'
+
 const buildMessage = (amqpMessage) => {
   const INFOTYPE = 'ioMessageAdapter'
   const INFOFORMAT = amqpMessage.type
@@ -33,6 +36,15 @@ const buildMessage = (amqpMessage) => {
 const listenForAMQPMessages = (amqpConfig) => {
   const container = require('rhea')
 
+  /**
+   * Default SASL behaviour is as follows. If the username and password
+   * are both specified, PLAIN will be used. If only a username is
+   * specified, ANONYMOUS will be used. If neither is specified, no SASl
+   * layer will be used.
+   */
+  container.options.username = ADAPTER_USERNAME
+  container.options.password = ADAPTER_PASSWORD
+
   const received = 0
 
   container.on('message', function (context) {
@@ -40,7 +52,7 @@ const listenForAMQPMessages = (amqpConfig) => {
       // ignore duplicate message
       return
     }
-    console.log(JSON.stringify(context.message.body))
+    console.log(JSON.stringify(context.message))
     if (context.message) {
       const ioMessage = buildMessage(context.message)
       if (ioMessage) {
