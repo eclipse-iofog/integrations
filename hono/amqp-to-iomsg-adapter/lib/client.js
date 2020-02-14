@@ -3,16 +3,15 @@ const ioFogClient = require('@iofog/nodejs-sdk')
 let currentConfig = {
   port: 51121,
   host: 'my-super-host',
-  queue: 'my-super-queue-name'
+  queue: 'my-super-queue-name',
+  username: 'http-adapter@HONO',
+  password: 'http-secret'
 }
-
-const ADAPTER_USERNAME = 'http-adapter@HONO'
-const ADAPTER_PASSWORD = 'http-secret'
 
 const buildMessage = (amqpMessage) => {
   const INFOTYPE = 'ioMessageAdapter'
-  const INFOFORMAT = amqpMessage.type
-  const msg = amqpMessage.body // This should be a string
+  const INFOFORMAT = amqpMessage.content_type
+  const msg = amqpMessage.body.toString()
   return ioFogClient.ioMessage({
     tag: '',
     groupid: '',
@@ -42,8 +41,8 @@ const listenForAMQPMessages = (amqpConfig) => {
    * specified, ANONYMOUS will be used. If neither is specified, no SASl
    * layer will be used.
    */
-  container.options.username = ADAPTER_USERNAME
-  container.options.password = ADAPTER_PASSWORD
+  container.options.username = amqpConfig.username
+  container.options.password = amqpConfig.password
 
   const received = 0
 
@@ -76,7 +75,8 @@ const fetchConfig = () => {
         try {
           if (config) {
             if (JSON.stringify(config) !== JSON.stringify(currentConfig)) {
-              currentConfig = config
+              currentConfig = { ...currentConfig, ...config }
+              onNewConfig()
             }
           }
         } catch (error) {
@@ -88,6 +88,11 @@ const fetchConfig = () => {
       }
     }
   )
+}
+
+const onNewConfig = () => {
+  // Listen for AMQP messages
+  listenForAMQPMessages(currentConfig)
 }
 
 const main = () => {
@@ -111,9 +116,6 @@ const main = () => {
       }
     }
   )
-
-  // Listen for AMQP messages
-  listenForAMQPMessages(currentConfig)
 }
 
 ioFogClient.init('iofog', 54321, null, main)
