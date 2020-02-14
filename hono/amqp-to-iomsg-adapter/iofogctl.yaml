@@ -1,0 +1,16 @@
+kind: Microservice
+apiVersion: iofog.org/v1
+metadata:
+  name: amqp-to-iomessage
+spec:
+  agent:
+    name: TBD
+  config:
+    port: 0
+    host: ""
+    queue: ""
+  images:
+    x86: TBD
+  routes:
+  - heart-rate-viewer
+  application: TBD

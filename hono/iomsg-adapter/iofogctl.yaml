@@ -1,0 +1,13 @@
+kind: Microservice
+apiVersion: iofog.org/v1
+metadata:
+  name: iomessage-to-httpadapter
+spec:
+  agent:
+    name: TBD
+  config:
+    host: ''
+    device: ''
+  images:
+    x86: TBD
+  application: TBD

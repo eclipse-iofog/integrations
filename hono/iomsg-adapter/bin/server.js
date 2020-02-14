@@ -1,13 +1,46 @@
 const { Hono } = require('../lib/client.js')
 const ioFogClient = require('@iofog/nodejs-sdk')
 
-const hono = new Hono(process.env.HONO_ADAPTER_HOST, 8080, 'DEFAULT_TENANT', process.env.HONO_DEVICE)
+const honoConst = {
+  device: '4711',
+  tenant: 'DEFAULT_TENANT',
+  port: 8080
+}
+
+let currentConfig = {
+  host: ''
+}
+
+const fetchConfig = () => {
+  ioFogClient.getConfig(
+    {
+      onBadRequest: (errorMsg) => {
+        console.error('There was an error in request for getting config from the local API: ', errorMsg)
+      },
+      onNewConfig: (config) => {
+        try {
+          if (config) {
+            if (JSON.stringify(config) !== JSON.stringify(currentConfig)) {
+              currentConfig = config
+            }
+          }
+        } catch (error) {
+          console.error('Couldn\'t stringify Config JSON: ', error)
+        }
+      },
+      onError: (error) => {
+        console.error('There was an error getting config from the local API: ', error)
+      }
+    }
+  )
+}
 
 const main = () => {
   // Handle ioFog
+  fetchConfig()
   ioFogClient.wsControlConnection(
     {
-      onNewConfigSignal: () => {},
+      onNewConfigSignal: () => { fetchConfig() },
       onError: (error) => {
         console.error('There was an error with Control WebSocket connection to ioFog: ', error)
       }
@@ -17,6 +50,7 @@ const main = () => {
     function (ioFogClient) { /* don't need to do anything on opened Message Socket */ },
     {
       onMessages: (messages) => {
+        const hono = new Hono(currentConfig.host, honoConst.port, honoConst.tenant, honoConst.device)
         if (messages) {
           for (const message of messages) {
             hono.PublishEvent(JSON.parse(message.contentdata.toString('ascii')))

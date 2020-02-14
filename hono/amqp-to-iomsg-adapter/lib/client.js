@@ -1,9 +1,15 @@
 const ioFogClient = require('@iofog/nodejs-sdk')
 
+let currentConfig = {
+  port: 51121,
+  host: 'my-super-host',
+  queue: 'my-super-queue-name'
+}
+
 const buildMessage = (amqpMessage) => {
-  const INFOTYPE = 'heartrate'
-  const INFOFORMAT = 'utf-8/json'
-  const jsonMsg = JSON.stringify('')
+  const INFOTYPE = 'ioMessageAdapter'
+  const INFOFORMAT = amqpMessage.type
+  const msg = amqpMessage.body // This should be a string
   return ioFogClient.ioMessage({
     tag: '',
     groupid: '',
@@ -20,7 +26,7 @@ const buildMessage = (amqpMessage) => {
     infotype: INFOTYPE,
     infoformat: INFOFORMAT,
     contextdata: '',
-    contentdata: jsonMsg
+    contentdata: msg
   })
 }
 
@@ -35,8 +41,8 @@ const listenForAMQPMessages = (amqpConfig) => {
       return
     }
     console.log(JSON.stringify(context.message.body))
-    if (context.message.body) {
-      const ioMessage = buildMessage(context.message.body)
+    if (context.message) {
+      const ioMessage = buildMessage(context.message)
       if (ioMessage) {
         ioFogClient.wsSendMessage(ioMessage)
       } else {
@@ -48,11 +54,36 @@ const listenForAMQPMessages = (amqpConfig) => {
   container.connect({ port: amqpConfig.port, host: amqpConfig.host, idle_time_out: 5000 }).open_receiver(amqpConfig.queue)
 }
 
+const fetchConfig = () => {
+  ioFogClient.getConfig(
+    {
+      onBadRequest: (errorMsg) => {
+        console.error('There was an error in request for getting config from the local API: ', errorMsg)
+      },
+      onNewConfig: (config) => {
+        try {
+          if (config) {
+            if (JSON.stringify(config) !== JSON.stringify(currentConfig)) {
+              currentConfig = config
+            }
+          }
+        } catch (error) {
+          console.error('Couldn\'t stringify Config JSON: ', error)
+        }
+      },
+      onError: (error) => {
+        console.error('There was an error getting config from the local API: ', error)
+      }
+    }
+  )
+}
+
 const main = () => {
   // Handle ioFog
+  fetchConfig()
   ioFogClient.wsControlConnection(
     {
-      onNewConfigSignal: () => {},
+      onNewConfigSignal: () => { fetchConfig() },
       onError: (error) => {
         console.error('There was an error with Control WebSocket connection to ioFog: ', error)
       }
@@ -70,12 +101,7 @@ const main = () => {
   )
 
   // Listen for AMQP messages
-  const amqpConfig = {
-    port: 51121,
-    host: 'my-super-host',
-    queue: 'my-super-queue-name'
-  }
-  listenForAMQPMessages(amqpConfig)
+  listenForAMQPMessages(currentConfig)
 }
 
 ioFogClient.init('iofog', 54321, null, main)
