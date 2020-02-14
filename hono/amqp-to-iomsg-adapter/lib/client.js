@@ -11,7 +11,10 @@ let currentConfig = {
 const buildMessage = (amqpMessage) => {
   const INFOTYPE = 'ioMessageAdapter'
   const INFOFORMAT = amqpMessage.content_type
-  const msg = amqpMessage.body.toString()
+  const msg = amqpMessage.body.content.toString()
+
+  console.log({ msg, INFOFORMAT })
+
   return ioFogClient.ioMessage({
     tag: '',
     groupid: '',
@@ -75,7 +78,7 @@ const fetchConfig = () => {
         try {
           if (config) {
             if (JSON.stringify(config) !== JSON.stringify(currentConfig)) {
-              currentConfig = { ...currentConfig, ...config }
+              currentConfig = config
               onNewConfig()
             }
           }
