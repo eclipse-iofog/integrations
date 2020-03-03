@@ -26,7 +26,7 @@ The [register.sh](register.sh) script can be used to automate the generation of 
 installation file.
 
 ```bash
-./register.sh
+./register.sh my-ns my-agent /tmp/file.txt /tmp/ /data/
 cat /tmp/hono-http-adapter.yaml
 ```
 
