@@ -18,7 +18,7 @@ ADAPTER_PASSWORD="http-secret"
 function initArgs(){
   ARG_COUNT=5
   if [ $# -ne $ARG_COUNT ]; then
-      echo "$ARG_COUNT arguments are required: <namespace> <agent-name> <src-file-path> <dest-file-path> <container-dest-file-path>"
+      echo "$ARG_COUNT arguments are required: <namespace> <agent-name> <src-dir> <dest-dir> <container-dest-dir>"
       exit 1
   fi
   NAMESPACE=$1
@@ -158,6 +158,6 @@ if [ -z "$AGENT_IP" ]; then
   exit 1
 fi
 # Rsync file to Agent
-rsync $SRC $USER@$AGENT_IP:$DST
+rsync -r $SRC $USER@$AGENT_IP:$DST
 
 createAdapterYaml
