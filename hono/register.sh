@@ -3,15 +3,14 @@ set -e
 
 ##################### CONST #####################
 
-TYPE="http" # http || mqtt
-ADAPTER_YAML_FILE="/tmp/hono-http-adapter.yaml"
-ROUTER_SERVICES=("HONO_MESSAGING" "HONO_COMMAND")
-REGISTRY_SERVICES=("HONO_TENANT" "HONO_REGISTRATION" "HONO_CREDENTIALS" "HONO_DEVICECONNECTION")
-REGISTRY_AMQP_PORT=5672
-REGISTRY_HTTP_PORT=28080
-ROUTER_PORT=15672
-ADAPTER_USERNAME="http-adapter@HONO"
-ADAPTER_PASSWORD="http-secret"
+APPLICATION_YAML_FILE="/tmp/application.yaml"
+HTTP_ADAPTER_CONFIG_FILE_NAME="hono-http-adapter-config.yaml"
+HTTP_ADAPTER_CERT_FILE_NAME="cert.pem"
+HTTP_ADAPTER_KEY_FILE_NAME="key.pem"
+HTTP_ADAPTER_TRUSTSTORE_FILE_NAME="trusted-certs.pem"
+HTTP_ADAPTER_CREDENTIALS_FILE_NAME="adapter.credentials"
+ROUTER_SERVICES=("messaging" "command")
+REGISTRY_SERVICES=("tenant" "registration" "credentials" "deviceConnection")
 
 ##################### FUNC #####################
 
@@ -28,30 +27,101 @@ function initArgs(){
   CONT_DST=$5
 }
 
-function serviceListToEnv() {
-  local HOST=$1
-  local PORT=$2
-  local VIRTUAL_HOST=$3
+function determineHonoEndpoints() {
+  KUBERNETES_NODE_IP=$(kubectl get nodes --output jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}')
+  REGISTRY_SERVICE_TYPE=$(kubectl get service -n "$NAMESPACE" hono-service-device-registry-ext --output jsonpath='{.spec.type}')
+
+  case $REGISTRY_SERVICE_TYPE in
+    NodePort)
+      REGISTRY_IP=$KUBERNETES_NODE_IP
+      REGISTRY_AMQPS_PORT=$(kubectl get service -n "$NAMESPACE" hono-service-device-registry-ext --output jsonpath='{.spec.ports[?(@.name=="amqps")].nodePort}')
+      ;;
+    LoadBalancer)
+      REGISTRY_IP=$(kubectl get service -n "$NAMESPACE" hono-service-device-registry-ext --output='jsonpath={.status.loadBalancer.ingress[0].ip}')
+      REGISTRY_AMQPS_PORT=$(kubectl get service -n "$NAMESPACE" hono-service-device-registry-ext --output jsonpath='{.spec.ports[?(@.name=="amqps")].port}')
+      ;;
+  esac
+
+  ROUTER_SERVICE_TYPE=$(kubectl get service -n "$NAMESPACE" hono-dispatch-router-ext --output jsonpath='{.spec.type}')
+  case $ROUTER_SERVICE_TYPE in
+    NodePort)
+      ROUTER_IP=$KUBERNETES_NODE_IP
+      ROUTER_PORT=$(kubectl get service -n "$NAMESPACE" hono-dispatch-router-ext --output jsonpath='{.spec.ports[?(@.name=="internal")].nodePort}')
+      ;;
+    LoadBalancer)
+      ROUTER_IP=$(kubectl get service -n "$NAMESPACE" hono-dispatch-router-ext --output='jsonpath={.status.loadBalancer.ingress[0].ip}')
+      ROUTER_PORT=$(kubectl get service -n "$NAMESPACE" hono-dispatch-router-ext --output jsonpath='{.spec.ports[?(@.name=="internal")].port}')
+      ;;
+  esac
+
+}
+
+function routerServicesListToYaml() {
+  local FILE=$1
+  local HOST=$2
+  local PORT=$3
   shift 3
   local SERVICES=$@
   for PREFIX in ${SERVICES[@]}; do
   echo -n "
-      - key: ${PREFIX}_HOST
-        value: $HOST
-      - key: ${PREFIX}_PORT
-        value: $PORT
-      - key: ${PREFIX}_AMQP_HOSTNAME
-        value: $VIRTUAL_HOST
-      - key: ${PREFIX}_USERNAME
-        value: $ADAPTER_USERNAME
-      - key: ${PREFIX}_PASSWORD
-        value: $ADAPTER_PASSWORD
-      - key: ${PREFIX}_HOSTNAME_VERIFICATION_REQUIRED
-        value: false" >> $ADAPTER_YAML_FILE
+  ${PREFIX}:
+    host: $HOST
+    port: $PORT
+    amqpHostname: hono-internal
+    keyPath: ${CONT_DST}/${HTTP_ADAPTER_KEY_FILE_NAME}
+    certPath: ${CONT_DST}/${HTTP_ADAPTER_CERT_FILE_NAME}
+    trustStorePath: ${CONT_DST}/${HTTP_ADAPTER_TRUSTSTORE_FILE_NAME}
+    hostnameVerificationRequired: false" >> $FILE
   done
 }
 
-function createAdapterYaml(){
+function registryServicesListToYaml() {
+  local FILE=$1
+  local HOST=$2
+  local PORT=$3
+  shift 3
+  local SERVICES=$@
+  for PREFIX in ${SERVICES[@]}; do
+  echo -n "
+  ${PREFIX}:
+    host: $HOST
+    port: $PORT
+    credentialsPath: ${CONT_DST}/${HTTP_ADAPTER_CREDENTIALS_FILE_NAME}
+    trustStorePath: ${CONT_DST}/${HTTP_ADAPTER_TRUSTSTORE_FILE_NAME}
+    hostnameVerificationRequired: false" >> $FILE
+  done
+}
+
+function createAdapterConfigYaml() {
+
+  # download HTTP adapter key material and trust store
+  curl https://raw.githubusercontent.com/eclipse/packages/master/charts/hono/hono-demo-certs-jar/http-adapter-cert.pem > ${SRC}/${HTTP_ADAPTER_CERT_FILE_NAME}
+  curl https://raw.githubusercontent.com/eclipse/packages/master/charts/hono/hono-demo-certs-jar/http-adapter-key.pem > ${SRC}/${HTTP_ADAPTER_KEY_FILE_NAME}
+  curl https://raw.githubusercontent.com/eclipse/packages/master/charts/hono/hono-demo-certs-jar/trusted-certs.pem > ${SRC}/${HTTP_ADAPTER_TRUSTSTORE_FILE_NAME}
+  curl https://raw.githubusercontent.com/eclipse/packages/master/charts/hono/example/http-adapter.credentials > ${SRC}/${HTTP_ADAPTER_CREDENTIALS_FILE_NAME}
+  YAML_FILE=${SRC}/${HTTP_ADAPTER_CONFIG_FILE_NAME}
+
+  echo -n "---
+hono:
+  app:
+    maxInstances: 1
+  healthCheck:
+    insecurePort: 8088
+    insecurePortBindAddress: 0.0.0.0
+  http:
+    bindAddress: 0.0.0.0
+    insecurePortEnabled: true
+    insecurePortBindAddress: 0.0.0.0
+    keyPath: ${CONT_DST}/${HTTP_ADAPTER_KEY_FILE_NAME}
+    certPath: ${CONT_DST}/${HTTP_ADAPTER_CERT_FILE_NAME}" > $YAML_FILE
+
+  # Update envs
+  determineHonoEndpoints
+  routerServicesListToYaml $YAML_FILE $ROUTER_IP $ROUTER_PORT ${ROUTER_SERVICES[@]}
+  registryServicesListToYaml $YAML_FILE $REGISTRY_IP $REGISTRY_AMQPS_PORT ${REGISTRY_SERVICES[@]}
+}
+
+function createApplicationYaml(){
   echo -n "---
   apiVersion: iofog.org/v1
   kind: Application
@@ -109,7 +179,7 @@ function createAdapterYaml(){
       agent:
         name: $AGENT
       images:
-        x86: index.docker.io/eclipse/hono-adapter-$TYPE-vertx:1.0.3
+        x86: index.docker.io/eclipse/hono-adapter-http-vertx:1.1.1
       rootHostAccess: true
       ports:
       - internal: 8088
@@ -120,36 +190,24 @@ function createAdapterYaml(){
         external: 8443
       env:
       - key: SPRING_CONFIG_LOCATION
-        value: file:///etc/hono/
+        value: file://${CONT_DST}/$HTTP_ADAPTER_CONFIG_FILE_NAME
       - key: SPRING_PROFILES_ACTIVE
-        value: dev
+        value: prod
       - key: LOGGING_CONFIG
-        value: classpath:logback-spring.xml
-      - key: HONO_HEALTHCHECK_INSECUREPORTBINDADDRESS
-        value: 0.0.0.0
-      - key: HONO_HTTP_INSECURE_PORT_ENABLED
-        value: true
-      - key: HONO_HTTP_AUTHENTICATION_REQUIRED
-        value: false" > $ADAPTER_YAML_FILE
-
-  # Update envs
-  serviceListToEnv $ROUTER_IP $ROUTER_PORT io-fog ${ROUTER_SERVICES[@]}
-  serviceListToEnv $REGISTRY_IP $REGISTRY_AMQP_PORT hono ${REGISTRY_SERVICES[@]} 
+        value: classpath:logback-spring.xml" > $APPLICATION_YAML_FILE
 
   # Update volumes
   echo "
       volumes:
       - hostDestination: $DST
         containerDestination: $CONT_DST
-        accessMode: 'r'" >> $ADAPTER_YAML_FILE
+        accessMode: 'r'" >> $APPLICATION_YAML_FILE
 }
 
 ##################### MAIN #####################
 
 initArgs $@
-
-REGISTRY_IP=$(kubectl get svc | grep hono-service-device-registry-ext | awk '{print $4}' | tr -d '"')
-ROUTER_IP=$(kubectl get svc | grep hono-dispatch-router-ext | awk '{print $4}' | tr -d '"')
+createAdapterConfigYaml
 
 # Get Agent IP
 AGENT_IP=$(iofogctl get agents -n "$NAMESPACE" | grep "$AGENT" | awk '{print $4}')
@@ -157,7 +215,7 @@ if [ -z "$AGENT_IP" ]; then
   echo "Could not find ioFog Agent $AGENT IP address"
   exit 1
 fi
-# Rsync file to Agent
+# Rsync files to Agent
 rsync -r $SRC $USER@$AGENT_IP:$DST
 
-createAdapterYaml
+createApplicationYaml
