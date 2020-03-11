@@ -46,7 +46,7 @@ Again, make sure to replace the `my-ns` parameter value with the name of the nam
 used for your ioFog ECN.
 
 ```bash
-iofogctl deploy -f /tmp/hono-http-adapter.yaml -n my-ns
+iofogctl deploy -f /tmp/application.yaml -n my-ns
 ```
 
 ## Check out your new hotness
