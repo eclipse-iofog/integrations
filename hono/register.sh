@@ -162,7 +162,7 @@ function createApplicationYaml(){
       config:
         username: consumer@HONO
         password: verysecret
-        port: $ROUTER_PORT
+        port: 15672
         host: $ROUTER_IP
         queue: event/DEFAULT_TENANT
       images:
