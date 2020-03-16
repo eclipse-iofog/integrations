@@ -46,11 +46,12 @@ function determineHonoEndpoints() {
   case $ROUTER_SERVICE_TYPE in
     NodePort)
       ROUTER_IP=$KUBERNETES_NODE_IP
-      ROUTER_PORT=$(kubectl get service -n "$NAMESPACE" hono-dispatch-router-ext --output jsonpath='{.spec.ports[?(@.name=="internal")].nodePort}')
+      ROUTER_PORT_INTERNAL=$(kubectl get service -n "$NAMESPACE" hono-dispatch-router-ext --output jsonpath='{.spec.ports[?(@.name=="internal")].nodePort}')
+      ROUTER_PORT_AMQP=$(kubectl get service -n "$NAMESPACE" hono-dispatch-router-ext --output jsonpath='{.spec.ports[?(@.name=="amqp")].nodePort}')
       ;;
     LoadBalancer)
       ROUTER_IP=$(kubectl get service -n "$NAMESPACE" hono-dispatch-router-ext --output='jsonpath={.status.loadBalancer.ingress[0].ip}')
-      ROUTER_PORT=$(kubectl get service -n "$NAMESPACE" hono-dispatch-router-ext --output jsonpath='{.spec.ports[?(@.name=="internal")].port}')
+      ROUTER_PORT_AMQP=$(kubectl get service -n "$NAMESPACE" hono-dispatch-router-ext --output jsonpath='{.spec.ports[?(@.name=="amqp")].port}')
       ;;
   esac
 
@@ -117,7 +118,7 @@ hono:
 
   # Update envs
   determineHonoEndpoints
-  routerServicesListToYaml $YAML_FILE $ROUTER_IP $ROUTER_PORT ${ROUTER_SERVICES[@]}
+  routerServicesListToYaml $YAML_FILE $ROUTER_IP $ROUTER_PORT_INTERNAL ${ROUTER_SERVICES[@]}
   registryServicesListToYaml $YAML_FILE $REGISTRY_IP $REGISTRY_AMQPS_PORT ${REGISTRY_SERVICES[@]}
 }
 
@@ -162,7 +163,7 @@ function createApplicationYaml(){
       config:
         username: consumer@HONO
         password: verysecret
-        port: 15672
+        port: $ROUTER_PORT_AMQP
         host: $ROUTER_IP
         queue: event/DEFAULT_TENANT
       images:
@@ -179,7 +180,7 @@ function createApplicationYaml(){
       agent:
         name: $AGENT
       images:
-        x86: index.docker.io/eclipse/hono-adapter-http-vertx:1.1.1
+        x86: eclipse/hono-adapter-http-vertx:1.1.1
       rootHostAccess: true
       ports:
       - internal: 8088
